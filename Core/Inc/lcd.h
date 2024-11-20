@@ -1,24 +1,29 @@
-#ifndef __LCD_H
-#define __LCD_H
+#ifndef LCD_H
+#define LCD_H
 
-#include "main.h"
+#include "stm32f4xx_hal.h"
 
-// Define LCD control pins
-#define RS GPIO_PIN_0
-#define E GPIO_PIN_1
-#define D4 GPIO_PIN_4
-#define D5 GPIO_PIN_5
-#define D6 GPIO_PIN_6
-#define D7 GPIO_PIN_7
-#define LCD_PORT GPIOA
+// Define custom types for the LCD
+typedef struct {
+    GPIO_TypeDef *RS_Port;    // Port for RS pin
+    uint16_t RS_Pin;          // Pin for RS
+    GPIO_TypeDef *EN_Port;    // Port for EN pin
+    uint16_t EN_Pin;          // Pin for EN
+    GPIO_TypeDef *D4_Port;    // Port for D4 pin
+    uint16_t D4_Pin;          // Pin for D4
+    GPIO_TypeDef *D5_Port;    // Port for D5 pin
+    uint16_t D5_Pin;          // Pin for D5
+    GPIO_TypeDef *D6_Port;    // Port for D6 pin
+    uint16_t D6_Pin;          // Pin for D6
+    GPIO_TypeDef *D7_Port;    // Port for D7 pin
+    uint16_t D7_Pin;          // Pin for D7
+} LCD_HandleTypeDef;
 
-// Function prototypes
-void LCD_Init(void);
-void LCD_Send_Cmd(uint8_t cmd);
-void LCD_Send_Data(uint8_t data);
-void LCD_Send_String(char *str);
-void LCD_Set_Cursor(uint8_t row, uint8_t col);
-void LCD_Write_4Bits(uint8_t data);
-void LCD_Pulse_Enable(void);
+// Function declarations
+void LCD_Init(LCD_HandleTypeDef *lcd);
+void LCD_Clear(LCD_HandleTypeDef *lcd);
+void LCD_WriteString(LCD_HandleTypeDef *lcd, const char *str);
+void LCD_SetCursor(LCD_HandleTypeDef *lcd, uint8_t row, uint8_t col);
+void LCD_WriteChar(LCD_HandleTypeDef *lcd, char character);
 
-#endif /* __LCD_H */
+#endif // LCD_H
