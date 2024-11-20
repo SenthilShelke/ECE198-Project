@@ -18,11 +18,12 @@
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "lcd.h"
+
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "lcd.h"
-#include "dht11.h"
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -57,7 +58,14 @@ static void MX_USART2_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+LCD_HandleTypeDef lcd = {
+    .RS_Port = GPIOA, .RS_Pin = GPIO_PIN_0,
+    .EN_Port = GPIOA, .EN_Pin = GPIO_PIN_1,
+    .D4_Port = GPIOA, .D4_Pin = GPIO_PIN_4,
+    .D5_Port = GPIOA, .D5_Pin = GPIO_PIN_5,
+    .D6_Port = GPIOA, .D6_Pin = GPIO_PIN_6,
+    .D7_Port = GPIOA, .D7_Pin = GPIO_PIN_7,
+};
 /* USER CODE END 0 */
 
 /**
@@ -91,33 +99,19 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  LCD_Init();  // Initialize the LCD
-  LCD_Send_String("Hello, STM32!");
-
-  DHT11_Init(GPIOA, GPIO_PIN_8);
-  LCD_Init();
-
+  LCD_Init(&lcd);
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  float temperature, humidity;
-  char buffer[16];
+  // Display messages
+  LCD_SetCursor(&lcd, 0, 0);       // Set cursor to row 0, column 0
+  LCD_WriteString(&lcd, "Hello, STM32!");
+
+  LCD_SetCursor(&lcd, 1, 0);       // Set cursor to row 1, column 0
+  LCD_WriteString(&lcd, "LCD 4-bit Mode");
   while (1)
   {
-	  if (DHT11_Read(&temperature, &humidity)) {
-	         LCD_Set_Cursor(0, 0);
-	         sprintf(buffer, "Temp: %.1f C", temperature);
-	         LCD_Send_String(buffer);
-
-	         LCD_Set_Cursor(1, 0);
-	         sprintf(buffer, "Hum: %.1f %%", humidity);
-	         LCD_Send_String(buffer);
-	     } else {
-	         LCD_Set_Cursor(0, 0);
-	         LCD_Send_String("DHT11 Error");
-	     }
-	     HAL_Delay(2000);
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -222,11 +216,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|LD2_Pin
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5
                           |GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_6, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -234,27 +225,14 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA0 PA1 PA4 LD2_Pin
+  /*Configure GPIO pins : PA0 PA1 PA4 PA5
                            PA6 PA7 */
-  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|LD2_Pin
+  GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5
                           |GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC6 */
-  GPIO_InitStruct.Pin = GPIO_PIN_6;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PC9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
