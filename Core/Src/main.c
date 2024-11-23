@@ -186,9 +186,13 @@ int main(void)
 //
 //  LCD_SetCursor(&lcd, 1, 0);       // Set cursor to row 1, column 0
 //  LCD_WriteString(&lcd, "LCD 4-bit Mode");
+	#define M_PI 3.14159265358979323846
   int tempdist1 = 0;
-
-
+  int diameter = 12.5;
+  int height = 25;
+  int volume = M_PI *(diameter/2) *(diameter/2) * height;
+  int currentVol;
+  int volEmpt;
   while (1)
  {
     if (DHT11_Start())
@@ -239,20 +243,48 @@ int main(void)
      // Calculate distance
      Distance = (Value2 - Value1) * 0.034 / 2;
 
-     // Display distance on the LCD
+     //fixes the bug with the value being 846, when nothing is near it
+     if(Distance == 846){
+    	 Distance = 0;
+     }
 
-
+    //fixes the bug with removing the excess letters showing up
     if(tempdist1 > Distance){
     	LCD_Clear(&lcd);
     }
 
-     char tempStr1[10];
-//     LCD_Clear_Row(&lcd, 1); // Clear the second row
+
+
+
+//    // Display distance on the LCD
+//     char tempStr1[10];
+//     LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
+//     itoa(Distance, tempStr1, 10); // Convert Distance to string
+//     LCD_WriteString(&lcd, tempStr1); // Display Distance
+//     LCD_SetCursor(&lcd, 1, 3); // Set cursor to row 1, column 0
+//     LCD_WriteString(&lcd, " cm");   // Append units
+
+
+    //displaying the valume of water in the tank
+    volEmpt = (height - Distance) * M_PI *(diameter/2) *(diameter/2);
+    currentVol = volume - volEmpt;
+    char tempStr1[10];
      LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
-     itoa(Distance, tempStr1, 10); // Convert Distance to string
+     itoa(currentVol, tempStr1, 10); // Convert Distance to string
      LCD_WriteString(&lcd, tempStr1); // Display Distance
-     LCD_SetCursor(&lcd, 1, 3); // Set cursor to row 1, column 0
-     LCD_WriteString(&lcd, " cm");   // Append units
+     LCD_SetCursor(&lcd, 1, 6); // Set cursor to row 1, column 0
+     LCD_WriteString(&lcd, " mL");   // Append units
+
+
+     //turning the leds on and off
+     if(Distance > 20 ){
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, 0);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 1);
+     }
+     else{
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, 1);
+		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 0);
+     }
 
 
 
@@ -324,13 +356,14 @@ static void MX_TIM1_Init(void)
 
   TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
+  TIM_IC_InitTypeDef sConfigIC = {0};
 
   /* USER CODE BEGIN TIM1_Init 1 */
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 71;
+  htim1.Init.Prescaler = 72-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 0xffff-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -343,9 +376,21 @@ static void MX_TIM1_Init(void)
   {
     Error_Handler();
   }
+  if (HAL_TIM_IC_Init(&htim1) != HAL_OK)
+  {
+    Error_Handler();
+  }
   sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
   sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
   if (HAL_TIMEx_MasterConfigSynchronization(&htim1, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sConfigIC.ICPolarity = TIM_INPUTCHANNELPOLARITY_RISING;
+  sConfigIC.ICSelection = TIM_ICSELECTION_DIRECTTI;
+  sConfigIC.ICPrescaler = TIM_ICPSC_DIV1;
+  sConfigIC.ICFilter = 0;
+  if (HAL_TIM_IC_ConfigChannel(&htim1, &sConfigIC, TIM_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
   }
@@ -406,7 +451,7 @@ static void MX_GPIO_Init(void)
                           |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_4|GPIO_PIN_9, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -423,11 +468,19 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_9;
+  /*Configure GPIO pins : PB2 PB10 PB4 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_4|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB6 PB7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+  GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
