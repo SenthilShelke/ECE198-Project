@@ -40,11 +40,12 @@
 /* Private variables ---------------------------------------------------------*/
 TIM_HandleTypeDef htim1;
 
+UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-#define TRIG_PIN GPIO_PIN_9
-#define TRIG_PORT GPIOA
+#define TRIG_PIN GPIO_PIN_7
+#define TRIG_PORT GPIOC
 #define ECHO_PIN GPIO_PIN_8
 #define ECHO_PORT GPIOA
 uint32_t pMillis;
@@ -58,11 +59,15 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//UART
+uint8_t tx_buff= 1;
+
 //LCD
 LCD_HandleTypeDef lcd = {
    .RS_Port = GPIOA, .RS_Pin = GPIO_PIN_0,
@@ -171,6 +176,7 @@ int main(void)
   MX_GPIO_Init();
   MX_USART2_UART_Init();
   MX_TIM1_Init();
+  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
  HAL_TIM_Base_Start(&htim1);
    HAL_GPIO_WritePin(TRIG_PORT, TRIG_PIN, GPIO_PIN_RESET);  // pull the TRIG pin low
@@ -188,8 +194,8 @@ int main(void)
 //  LCD_WriteString(&lcd, "LCD 4-bit Mode");
 	#define M_PI 3.14159265358979323846
   int tempdist1 = 0;
-  int diameter = 12.5;
-  int height = 25;
+  int diameter = 7;
+  int height = 20;
   int volume = M_PI *(diameter/2) *(diameter/2) * height;
   int currentVol;
   int volEmpt;
@@ -256,35 +262,43 @@ int main(void)
 
 
 
-//    // Display distance on the LCD
-//     char tempStr1[10];
-//     LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
-//     itoa(Distance, tempStr1, 10); // Convert Distance to string
-//     LCD_WriteString(&lcd, tempStr1); // Display Distance
-//     LCD_SetCursor(&lcd, 1, 3); // Set cursor to row 1, column 0
-//     LCD_WriteString(&lcd, " cm");   // Append units
+    // Display distance on the LCD
+     char tempStr1[10];
+     LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
+     itoa(Distance, tempStr1, 10); // Convert Distance to string
+     LCD_WriteString(&lcd, tempStr1); // Display Distance
+     LCD_SetCursor(&lcd, 1, 3); // Set cursor to row 1, column 0
+     LCD_WriteString(&lcd, " cm");   // Append units
 
 
     //displaying the valume of water in the tank
-    volEmpt = (height - Distance) * M_PI *(diameter/2) *(diameter/2);
-    currentVol = volume - volEmpt;
-    char tempStr1[10];
-     LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
-     itoa(currentVol, tempStr1, 10); // Convert Distance to string
-     LCD_WriteString(&lcd, tempStr1); // Display Distance
-     LCD_SetCursor(&lcd, 1, 6); // Set cursor to row 1, column 0
-     LCD_WriteString(&lcd, " mL");   // Append units
+//    volEmpt = (Distance) * M_PI *(diameter/2) *(diameter/2);
+//    currentVol = volume - volEmpt;
+//    char tempStr1[10];
+//     LCD_SetCursor(&lcd, 1, 0); // Set cursor to row 1, column 0
+//     itoa(currentVol, tempStr1, 10); // Convert Distance to string
+//     LCD_WriteString(&lcd, tempStr1); // Display Distance
+//     LCD_SetCursor(&lcd, 1, 6); // Set cursor to row 1, column 0
+//     LCD_WriteString(&lcd, " mL");   // Append units
 
 
      //turning the leds on and off
-     if(Distance > 20 ){
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, 0);
-		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 1);
+     if(Distance > 16 ){
+    	 // red led on
+		 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, 0);
+		 HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 1);
+		 tx_buff = 0;
      }
      else{
+    	 //green led on
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_10, 1);
 		  HAL_GPIO_WritePin(GPIOB, GPIO_PIN_4, 0);
+		  tx_buff = 1;
+
      }
+
+     HAL_UART_Transmit(&huart1, &tx_buff, 1,1000);
+
 
 
 
@@ -400,6 +414,39 @@ static void MX_TIM1_Init(void)
 }
 
 /**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
   * @brief USART2 Initialization Function
   * @param None
   * @retval None
@@ -448,10 +495,13 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|LD2_Pin
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9, GPIO_PIN_RESET);
+                          |GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_4|GPIO_PIN_9, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
@@ -460,9 +510,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PA0 PA1 PA4 LD2_Pin
-                           PA6 PA7 PA9 */
+                           PA6 PA7 */
   GPIO_InitStruct.Pin = GPIO_PIN_0|GPIO_PIN_1|GPIO_PIN_4|LD2_Pin
-                          |GPIO_PIN_6|GPIO_PIN_7|GPIO_PIN_9;
+                          |GPIO_PIN_6|GPIO_PIN_7;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -474,6 +524,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PC7 */
+  GPIO_InitStruct.Pin = GPIO_PIN_7;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : PB6 PB7 */
   GPIO_InitStruct.Pin = GPIO_PIN_6|GPIO_PIN_7;
